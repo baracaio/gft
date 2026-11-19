@@ -1,0 +1,25 @@
+services:
+  localstack:
+    # Primary emulator: Floci (MIT, no account/token, same API as LocalStack).
+    # To switch to LocalStack: set IMAGE=localstack/localstack:3 or export it.
+    # Both listen on port 4566.
+    image: ${EMULATOR_IMAGE:-localstack/localstack:3}
+    container_name: gft-emulator
+    ports:
+      - "${EMULATOR_PORT:-4566}:4566"
+    environment:
+      SERVICES: sqs,dynamodb,lambda,iam,logs
+      DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      LAMBDA_EXECUTOR: docker
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - emulator-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  emulator-data:
