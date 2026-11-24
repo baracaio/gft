@@ -1,0 +1,45 @@
+{
+  "scenario": 3,
+  "title": "Block list replaced and sorted",
+  "description": "Two block messages for the same client arrive in order. The second message is newer and has a different set of blocks, sent in reverse code order. The Lambda must replace the first list entirely and store the result sorted ascending by codigo.",
+  "steps": [
+    {
+      "queue": "bloqueios",
+      "body": {
+        "codigo_cliente": "33333333-0000-0000-0000-000000000003",
+        "codigo_bloqueio_1": 300,
+        "valor_bloqueio_1": "900.00",
+        "data_atualizacao": "2024-03-01T08:00:00Z"
+      }
+    },
+    {
+      "queue": "bloqueios",
+      "body": {
+        "codigo_cliente": "33333333-0000-0000-0000-000000000003",
+        "codigo_bloqueio_1": 500,
+        "valor_bloqueio_1": "75.50",
+        "codigo_bloqueio_2": 100,
+        "valor_bloqueio_2": "200.00",
+        "codigo_bloqueio_3": 300,
+        "valor_bloqueio_3": "50.25",
+        "data_atualizacao": "2024-03-01T10:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "success",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "33333333-0000-0000-0000-000000000003",
+      "fields": {
+        "data_atualizacao_bloqueios": "2024-03-01T10:00:00Z",
+        "bloqueios": [
+          {"codigo": 100, "valor": "200.00"},
+          {"codigo": 300, "valor": "50.25"},
+          {"codigo": 500, "valor": "75.50"}
+        ]
+      }
+    },
+    "note": "The first list (single block 300) must be fully replaced. The result must be sorted by codigo: 100 < 300 < 500."
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "scenario": 5,
+  "title": "Domains do not overwrite each other",
+  "description": "A client message and a block message are sent for the same GUID. Each domain must write only its own fields and leave the other domain's fields untouched. After both are processed the record must contain all fields from both domains.",
+  "steps": [
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "55555555-0000-0000-0000-000000000005",
+        "numero_agencia": 50,
+        "numero_conta": 55500,
+        "numero_dac": 1,
+        "data_atualizacao": "2024-03-01T08:00:00Z"
+      }
+    },
+    {
+      "queue": "bloqueios",
+      "body": {
+        "codigo_cliente": "55555555-0000-0000-0000-000000000005",
+        "codigo_bloqueio_1": 200,
+        "valor_bloqueio_1": "3000.00",
+        "codigo_bloqueio_2": 400,
+        "valor_bloqueio_2": "150.75",
+        "data_atualizacao": "2024-03-01T09:30:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "success",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "55555555-0000-0000-0000-000000000005",
+      "fields": {
+        "numero_agencia": 50,
+        "numero_conta": 55500,
+        "numero_dac": 1,
+        "data_atualizacao_cliente": "2024-03-01T08:00:00Z",
+        "bloqueios": [
+          {"codigo": 200, "valor": "3000.00"},
+          {"codigo": 400, "valor": "150.75"}
+        ],
+        "data_atualizacao_bloqueios": "2024-03-01T09:30:00Z"
+      }
+    },
+    "note": "The block write must not erase numero_agencia, numero_conta or numero_dac. The client write must not erase the bloqueios list. version must be 2 (one write per domain)."
+  }
+}

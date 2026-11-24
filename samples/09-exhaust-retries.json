@@ -1,0 +1,29 @@
+{
+  "scenario": 9,
+  "title": "Exhaust retries — DLQ and failure table record",
+  "description": "A structurally valid JSON is sent to the clientes queue, but with a non-UUID client code. This is a permanent validation error: the Lambda will reject it on every attempt. After 3 delivery attempts (1 original + 2 retries), SQS moves the message to the dead-letter queue. On the third and final attempt the Lambda also writes a record to the falhas_processamento table with tipo_erro=permanente.",
+  "steps": [
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "INVALID-CODE-EXHAUST-RETRIES",
+        "numero_agencia": 90,
+        "numero_conta": 99900,
+        "numero_dac": 5,
+        "data_atualizacao": "2024-03-01T12:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "permanent error after 3 attempts — DLQ receives the message; failure table receives a record",
+    "wait": "6-9 minutes for the full retry cycle to complete with the default 180-second visibility timeout",
+    "dlq": {
+      "queue": "clientes_dlq",
+      "note": "Exactly one message must appear here."
+    },
+    "dynamodb": {
+      "table": "falhas_processamento",
+      "note": "A record keyed by the SQS messageId must exist with tipo_erro=permanente, tentativas=3, and corpo_original containing the original message body."
+    }
+  }
+}

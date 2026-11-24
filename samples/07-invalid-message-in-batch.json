@@ -1,0 +1,42 @@
+{
+  "scenario": 7,
+  "title": "Batch with invalid message — only it fails",
+  "description": "Two messages arrive for the clientes queue. The first is valid; the second has an invalid GUID. The Lambda must process them in the same batch, succeed for the first, and report only the second as a BatchItemFailure. The valid client record must appear in DynamoDB. The invalid message is retried by SQS and eventually reaches the DLQ.",
+  "steps": [
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "77777777-0000-0000-0000-000000000007",
+        "numero_agencia": 70,
+        "numero_conta": 77700,
+        "numero_dac": 6,
+        "data_atualizacao": "2024-03-01T11:00:00Z"
+      }
+    },
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "not-a-valid-guid",
+        "numero_agencia": 70,
+        "numero_conta": 77700,
+        "numero_dac": 6,
+        "data_atualizacao": "2024-03-01T11:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "partial — first message succeeds, second fails and is retried by SQS",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "77777777-0000-0000-0000-000000000007",
+      "fields": {
+        "numero_agencia": 70,
+        "data_atualizacao_cliente": "2024-03-01T11:00:00Z"
+      }
+    },
+    "dlq": {
+      "queue": "clientes_dlq",
+      "note": "The invalid message appears here after 3 delivery attempts (~6-9 minutes with the default visibility timeout)."
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "scenario": 1,
+  "title": "New client",
+  "description": "A valid client message for a GUID that does not yet exist in DynamoDB. The Lambda must create a new record with only the client domain fields and version=1.",
+  "steps": [
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "11111111-0000-0000-0000-000000000001",
+        "numero_agencia": 10,
+        "numero_conta": 55500,
+        "numero_dac": 7,
+        "data_atualizacao": "2024-03-01T08:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "success",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "11111111-0000-0000-0000-000000000001",
+      "fields": {
+        "numero_agencia": 10,
+        "numero_conta": 55500,
+        "numero_dac": 7,
+        "data_atualizacao_cliente": "2024-03-01T08:00:00Z",
+        "version": 1
+      },
+      "absent": ["bloqueios", "data_atualizacao_bloqueios"]
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "scenario": 2,
+  "title": "Blocks before client exists",
+  "description": "A block message arrives for a GUID that has no client record yet. The Lambda must create the row with only block fields (no agencia/conta/dac). When the client message arrives later it must fill in the missing fields without erasing the block data.",
+  "steps": [
+    {
+      "queue": "bloqueios",
+      "body": {
+        "codigo_cliente": "22222222-0000-0000-0000-000000000002",
+        "codigo_bloqueio_1": 500,
+        "valor_bloqueio_1": "1250.00",
+        "data_atualizacao": "2024-03-01T07:00:00Z"
+      }
+    },
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "22222222-0000-0000-0000-000000000002",
+        "numero_agencia": 20,
+        "numero_conta": 88800,
+        "numero_dac": 3,
+        "data_atualizacao": "2024-03-01T09:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "success",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "22222222-0000-0000-0000-000000000002",
+      "fields": {
+        "numero_agencia": 20,
+        "numero_conta": 88800,
+        "numero_dac": 3,
+        "data_atualizacao_cliente": "2024-03-01T09:00:00Z",
+        "bloqueios": [{"codigo": 500, "valor": "1250.00"}],
+        "data_atualizacao_bloqueios": "2024-03-01T07:00:00Z"
+      }
+    },
+    "note": "After step 1 the row exists with only block fields. After step 2 client fields are added. Neither domain should erase the other's data."
+  }
+}

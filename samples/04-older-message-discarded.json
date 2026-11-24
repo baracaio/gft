@@ -1,0 +1,40 @@
+{
+  "scenario": 4,
+  "title": "Older message discarded",
+  "description": "Two client messages for the same GUID arrive out of order: the newer one first, then an older one. The Lambda must accept the first (newer) and silently discard the second (older) without returning a failure. The DynamoDB record must reflect only the first message's data.",
+  "steps": [
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "44444444-0000-0000-0000-000000000004",
+        "numero_agencia": 40,
+        "numero_conta": 44400,
+        "numero_dac": 2,
+        "data_atualizacao": "2024-03-15T12:00:00Z"
+      }
+    },
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "44444444-0000-0000-0000-000000000004",
+        "numero_agencia": 40,
+        "numero_conta": 44400,
+        "numero_dac": 9,
+        "data_atualizacao": "2024-03-10T06:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "success — both messages processed without error; second is silently discarded",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "44444444-0000-0000-0000-000000000004",
+      "fields": {
+        "numero_dac": 2,
+        "data_atualizacao_cliente": "2024-03-15T12:00:00Z",
+        "version": 1
+      }
+    },
+    "note": "numero_dac must be 2 (from the newer message), not 9. version stays at 1 because the second message was discarded without a write."
+  }
+}

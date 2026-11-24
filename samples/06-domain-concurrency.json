@@ -1,0 +1,38 @@
+{
+  "scenario": 6,
+  "title": "Domain concurrency — version conflict absorbed by internal retry",
+  "description": "A client message and a block message for the same GUID are sent back-to-back so they may be picked up in the same Lambda batch or in overlapping executions. Both Lambdas read version=0 (item absent) or the same version and race to write. The optimistic locking retry loop inside the Lambda must absorb the conflict and ensure both domains end up written correctly.",
+  "steps": [
+    {
+      "queue": "clientes",
+      "body": {
+        "codigo_cliente": "66666666-0000-0000-0000-000000000006",
+        "numero_agencia": 60,
+        "numero_conta": 66600,
+        "numero_dac": 4,
+        "data_atualizacao": "2024-03-01T10:00:00Z"
+      }
+    },
+    {
+      "queue": "bloqueios",
+      "body": {
+        "codigo_cliente": "66666666-0000-0000-0000-000000000006",
+        "codigo_bloqueio_1": 100,
+        "valor_bloqueio_1": "500.00",
+        "data_atualizacao": "2024-03-01T10:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "outcome": "success — both messages written; at least one internal retry expected",
+    "dynamodb": {
+      "table": "cadastro_geral",
+      "key": "66666666-0000-0000-0000-000000000006",
+      "fields": {
+        "numero_agencia": 60,
+        "bloqueios": [{"codigo": 100, "valor": "500.00"}]
+      }
+    },
+    "note": "The script should send both messages to their respective queues as close together as possible. The final version value will be 2 or 3 depending on which write hit a conflict and retried. The important assertion is that all fields from both domains are present."
+  }
+}
