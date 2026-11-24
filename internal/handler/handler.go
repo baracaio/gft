@@ -63,7 +63,11 @@ func (h *Handler) Handle(ctx context.Context, event events.SQSEvent) (events.SQS
 		m := &parsed[i]
 		if m.err != nil {
 			failures = append(failures, events.SQSBatchItemFailure{ItemIdentifier: m.sqsID})
-			if m.isLastAttempt() {
+			// Permanent errors are written to the failure table on the first occurrence:
+			// they will never succeed on retry, so there is no reason to wait for the
+			// third attempt. Transient errors are written only on the last attempt.
+			var pErr *domain.PermanentError
+			if errors.As(m.err, &pErr) || m.isLastAttempt() {
 				_ = h.repo.SaveFailure(ctx, h.buildFailureRecord(m, m.err))
 			}
 			continue

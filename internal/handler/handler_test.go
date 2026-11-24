@@ -122,6 +122,23 @@ func TestHandle(t *testing.T) {
 			},
 		},
 		{
+			name:   "permanent parse error on first attempt triggers SaveFailure immediately",
+			domain: "cliente",
+			messages: []events.SQSMessage{
+				// receiveCount=1 — not the last attempt, but error is permanent
+				sqsMsg("msg-perm-early", `{"codigo_cliente":"not-a-guid","numero_agencia":1,"numero_conta":2,"numero_dac":0,"data_atualizacao":"2024-01-15T10:00:00Z"}`, 1),
+			},
+			check: func(t *testing.T, resp events.SQSEventResponse, repo *mockRepo) {
+				assertFailureIDs(t, resp, "msg-perm-early")
+				if len(repo.failureCalls) != 1 {
+					t.Fatalf("SaveFailure calls: want 1 on first attempt for permanent error, got %d", len(repo.failureCalls))
+				}
+				if repo.failureCalls[0].ErrorType != "permanente" {
+					t.Errorf("ErrorType: got %q, want %q", repo.failureCalls[0].ErrorType, "permanente")
+				}
+			},
+		},
+		{
 			name:   "save transient error puts message in failures",
 			domain: "cliente",
 			messages: []events.SQSMessage{
