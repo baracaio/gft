@@ -18,6 +18,13 @@ func main() {
 	endpoint   := os.Getenv("DYNAMODB_ENDPOINT")
 	queue      := os.Getenv("QUEUE_NAME")
 
+	// LOCALSTACK_HOSTNAME is injected by LocalStack's Lambda Docker executor and
+	// resolves to LocalStack from within the container. It takes priority over
+	// DYNAMODB_ENDPOINT, which may point to "localhost" — unreachable inside a container.
+	if lsHost := os.Getenv("LOCALSTACK_HOSTNAME"); lsHost != "" {
+		endpoint = "http://" + lsHost + ":4566"
+	}
+
 	repo, err := repository.New(context.Background(), repository.Config{
 		Region:        region,
 		TableName:     table,
