@@ -1,24 +1,29 @@
 # ============================================================
 # Configuration — override on the CLI: make build ARCH=arm64
 # ============================================================
-ARCH     ?= amd64
-ENDPOINT ?= http://localhost:4566
-REGION   ?= us-east-1
+ARCH           ?= amd64
+ENDPOINT       ?= http://localhost:4566
+REGION         ?= us-east-1
+# Lambda timeout in seconds. Visibility timeout = 6× this value (AWS best practice).
+# Keep at 5 for local dev (visibility timeout = 30s, DLQ cycle ~60-90s).
+# Set to 30 for production-like behaviour (visibility timeout = 180s).
+LAMBDA_TIMEOUT ?= 5
 
 BUILD_DIR := build
 ZIP       := $(BUILD_DIR)/lambda.zip
 
 TF        := terraform -chdir=infra
-TF_VARS   := -var="aws_endpoint=$(ENDPOINT)" \
-             -var="lambda_arch=$(ARCH)"       \
-             -var="aws_region=$(REGION)"
+TF_VARS   := -var="aws_endpoint=$(ENDPOINT)"             \
+             -var="lambda_arch=$(ARCH)"                  \
+             -var="aws_region=$(REGION)"                 \
+             -var="lambda_timeout=$(LAMBDA_TIMEOUT)"
 
 # A client GUID used in demo scenarios.
 DEMO_CLIENT := 550e8400-e29b-41d4-a716-446655440000
 
 AWS_LOCAL := aws --endpoint-url=$(ENDPOINT) --region=$(REGION)
 
-.PHONY: all up down build build-docker deploy destroy test demo logs fmt validate help
+.PHONY: all up down build build-docker deploy destroy test demo reset logs fmt validate help
 
 # ============================================================
 # Composite targets
@@ -78,6 +83,12 @@ validate: ## Run go vet and terraform validate
 
 test: ## Run all Go unit tests
 	go test ./... -count=1
+
+# ============================================================
+# Reset — wipe local state for a clean test run
+# ============================================================
+reset: ## Purge all SQS queues and DynamoDB items for a clean test run
+	@ENDPOINT=$(ENDPOINT) REGION=$(REGION) bash scripts/reset.sh
 
 # ============================================================
 # Demo — covers spec scenarios 1–4 and 7 inline
